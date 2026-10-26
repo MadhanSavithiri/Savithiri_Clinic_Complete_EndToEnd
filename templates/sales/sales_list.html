@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Counter sales - {{ clinic.name }}{% endblock %}
+{% block content %}
+<h1>{% if scope == "own" %}My counter sales{% else %}All counter sales{% endif %}</h1>
+<form method="get" class="toolbar">
+  <div class="field"><label for="from">From</label><input id="from" type="date" name="from" value="{{ start|date:'Y-m-d' }}"></div>
+  <div class="field"><label for="to">To</label><input id="to" type="date" name="to" value="{{ end|date:'Y-m-d' }}"></div>
+  {% if scope == "all" %}<div class="field"><label for="cashier">Cashier</label><select id="cashier" name="cashier"><option value="">All</option>
+    {% for c in cashiers %}<option value="{{ c.pk }}" {% if c.pk|stringformat:"s" == cashier %}selected{% endif %}>{{ c.get_full_name|default:c.username }}</option>{% endfor %}</select></div>{% endif %}
+  <button class="btn secondary" type="submit">Show</button>
+</form>
+<p><strong>Total sales: &#8377; {{ total }}</strong> <span class="muted">({{ sales|length }} bill{{ sales|length|pluralize }})</span></p>
+{% if by_method %}<p class="muted">Money received:
+  {% for m in by_method %}{{ m.method }} {% if m.kind == "REFUND" %}refunded{% endif %} &#8377;{{ m.total }}{% if not forloop.last %} &middot; {% endif %}{% endfor %}</p>{% endif %}
+<div class="table-wrap"><table>
+  <thead><tr><th>Bill</th><th>Time</th>{% if scope == "all" %}<th>Cashier</th>{% endif %}<th>Customer</th><th>Total</th><th>Paid by</th><th></th></tr></thead>
+  <tbody>{% for s in sales %}
+    <tr><td>{{ s.number }}</td><td>{{ s.completed_at|date:"d/m/Y h:i A" }}</td>{% if scope == "all" %}<td>{{ s.cashier.get_full_name|default:s.cashier.username }}</td>{% endif %}
+    <td>{{ s.customer_name|default:"-" }}</td><td>&#8377; {{ s.total }}</td>
+    <td>{% for p in s.payments.all %}{{ p.get_method_display }}{% if not forloop.last %}, {% endif %}{% endfor %}</td>
+    <td><a href="{% url 'sales:receipt' s.pk %}" target="_blank" rel="noopener">Receipt</a></td></tr>
+  {% empty %}<tr><td colspan="7">No sales in this period.</td></tr>{% endfor %}</tbody>
+</table></div>
+{% endblock %}

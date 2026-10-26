@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Edit medicine - {{ clinic.name }}{% endblock %}
+{% block content %}
+<h1>Edit medicine on the draft prescription</h1>
+<p class="muted">{{ patient.full_name }} &middot; {{ patient.patient_id }}</p>
+<form method="post" class="form" style="max-width:48rem" novalidate>{% csrf_token %}
+  {% include "clinical/_fields.html" with grid=True %}
+  <div id="qty-explain" class="help" aria-live="polite"></div>
+  <datalist id="freq-list">{% for f in frequency_hints %}<option value="{{ f }}">{% endfor %}</datalist>
+  <div class="actions"><button class="btn" type="submit">Save</button><a class="btn secondary" href="{% url 'clinical:encounter' enc.pk %}#prescription">Cancel</a></div>
+</form>
+<script src="{% static 'js/rx_calc.js' %}" defer></script>
+{% endblock %}

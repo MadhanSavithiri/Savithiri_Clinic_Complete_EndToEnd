@@ -1,0 +1,64 @@
+.venv/
+__pycache__/
+*.pyc
+.env
+logs/*.log*
+staticfiles/
+backups/
+*.sqlite3
+
+# Python environment and cache
+venv/
+env/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Secrets and local configuration
+.env.*
+!.env.example
+
+# Logs and temporary files
+logs/
+*.log
+*.tmp
+*.bak
+
+# Local databases and backups
+*.db
+*.sqlite
+*.sqlite3
+backups/
+
+# Frontend dependencies and generated output
+node_modules/
+dist/
+build/
+
+# IDE and operating-system files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Local backup of ignore rules
+.gitignore.backup
+
+# Local diagnostic output (keep files on this PC, not in Git)
+causes.txt
+errors.txt
+full.txt
+summary.txt
+
+# Local diagnostic output (keep files on this PC, not in Git)
+causes.txt
+errors.txt
+full.txt
+summary.txt
+
+# Local diagnostic output (keep files on this PC, not in Git)
+causes.txt
+errors.txt
+full.txt
+summary.txt

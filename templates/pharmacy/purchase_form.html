@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}Purchase - {{ clinic.name }}{% endblock %}
+{% block content %}
+<h1>{% if creating %}New purchase{% else %}Edit purchase details{% endif %}</h1>
+<form method="post" class="form" novalidate>{% csrf_token %}
+  {% include "clinical/_fields.html" %}
+  <div class="actions"><button class="btn" type="submit">{% if creating %}Continue to items{% else %}Save{% endif %}</button>
+  <a class="btn secondary" href="{% if creating %}{% url 'pharmacy:purchase_list' %}{% else %}{% url 'pharmacy:purchase_detail' invoice.pk %}{% endif %}">Cancel</a></div>
+</form>
+{% endblock %}

@@ -1,0 +1,18 @@
+{% load accounts_tags %}
+<div class="table-wrap"><table>
+  <thead><tr><th>Patient ID</th><th>Name</th><th>Age / sex</th><th>Phone</th></tr></thead>
+  <tbody>
+  {% for p in patients %}
+    <tr>
+      <td><a href="{% url 'patients:detail' p.pk %}">{{ p.patient_id }}</a></td>
+      <td><a href="{% url 'patients:detail' p.pk %}">{{ p.full_name }}</a></td>
+      <td>{{ p.age_display }} / {{ p.get_sex_display }}</td>
+      <td>{{ p.phone|default:"-" }}</td>
+    </tr>
+  {% empty %}
+    <tr><td colspan="4">No patient found{% if q %} for "{{ q }}"{% endif %}.
+      {% if request.user|can:"patients.register" %}<a href="{% url 'patients:create' %}">Register a new patient</a>.{% endif %}</td></tr>
+  {% endfor %}
+  </tbody>
+</table></div>
+{% if not q %}<p class="muted">Showing the most recently registered patients. Type to search.</p>{% endif %}

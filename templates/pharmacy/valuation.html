@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Stock valuation - {{ clinic.name }}{% endblock %}
+{% block content %}
+<div class="head"><h1>Stock valuation</h1><a class="btn secondary no-print" href="?fmt=csv">Download CSV</a></div>
+{% include "pharmacy/_stock_nav.html" %}
+<div class="table-wrap" style="max-width:40rem"><table>
+  <thead><tr><th></th><th>At cost</th><th>At selling price</th></tr></thead>
+  <tbody>
+    <tr><th>Usable stock</th><td>&#8377; {{ t.cost_usable }}</td><td>&#8377; {{ t.sell_usable }}</td></tr>
+    <tr><th>Expired stock</th><td>&#8377; {{ t.cost_expired }}</td><td>&#8377; {{ t.sell_expired }}</td></tr>
+    <tr><th>Recalled stock</th><td>&#8377; {{ t.cost_recalled }}</td><td>&#8377; {{ t.sell_recalled }}</td></tr>
+    <tr><th>Everything on hand</th><td><strong>&#8377; {{ t.cost_all }}</strong></td><td><strong>&#8377; {{ t.sell_all }}</strong></td></tr>
+  </tbody>
+</table></div>
+<p class="muted">Cost uses the purchase price recorded on each batch. Selling price is what is entered as MRP on purchase. Tax treatment is not applied here: confirm valuation rules with your accountant.</p>
+<h2>By medicine</h2>
+<div class="table-wrap"><table>
+  <thead><tr><th>Medicine</th><th>Units</th><th>At cost</th><th>At selling price</th></tr></thead>
+  <tbody>{% for r in rows %}<tr><td>{{ r.medicine__brand_name }} {{ r.medicine__strength }}</td><td>{{ r.units }}</td><td>{{ r.cost }}</td><td>{{ r.sell }}</td></tr>
+  {% empty %}<tr><td colspan="4">No stock on hand.</td></tr>{% endfor %}</tbody>
+</table></div>
+{% endblock %}

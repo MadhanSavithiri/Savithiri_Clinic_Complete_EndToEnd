@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}{% if creating %}Register patient{% else %}Edit patient{% endif %} - {{ clinic.name }}{% endblock %}
+{% block content %}
+<h1>{% if creating %}Register a new patient{% else %}Edit {{ patient.patient_id }}{% endif %}</h1>
+{% if creating %}<p class="muted">The patient ID is created automatically. Collect only what is needed.</p>{% endif %}
+
+{% if duplicates %}
+<div class="dupe" role="alert">
+  <strong>This patient may already be registered.</strong>
+  <ul>
+    {% for p, reason in duplicates %}
+      <li><a href="{% url 'patients:detail' p.pk %}" target="_blank" rel="noopener">{{ p.patient_id }} - {{ p.full_name }}</a>
+        ({{ p.age_display }}, {{ p.phone|default:"no phone" }}) <span class="muted">{{ reason }}</span></li>
+    {% endfor %}
+  </ul>
+  <p>If one of these is the same person, open that record instead. If this is a different person, use the button at the bottom.</p>
+</div>
+{% endif %}
+
+<form method="post" class="form" novalidate>{% csrf_token %}
+  {% for field in form %}
+    {% if field.name == "consent_given" %}
+      <h2>Consent</h2>
+      <p class="muted">{% if consent_notice %}{{ consent_notice }}{% else %}Consent wording is not configured yet (Settings key <code>consent_notice_text</code>). Have your legal adviser confirm the wording.{% endif %}</p>
+    {% endif %}
+    <div class="field">
+      {% if field.field.widget.input_type == "checkbox" %}
+        <label for="{{ field.id_for_label }}">{{ field }} {{ field.label }}</label>
+      {% else %}
+        <label for="{{ field.id_for_label }}">{{ field.label }}{% if field.field.required %} *{% endif %}</label>
+        {{ field }}
+      {% endif %}
+      {% if field.help_text %}<div class="help">{{ field.help_text }}</div>{% endif %}
+      {% for e in field.errors %}<div class="error">{{ e }}</div>{% endfor %}
+    </div>
+  {% endfor %}
+  {% for e in form.non_field_errors %}<div class="error">{{ e }}</div>{% endfor %}
+  <div class="actions">
+    {% if duplicates %}
+      <button class="btn" type="submit" name="confirm_new" value="1">This is a different person: register as new</button>
+    {% else %}
+      <button class="btn" type="submit">{% if creating %}Register patient{% else %}Save changes{% endif %}</button>
+    {% endif %}
+    <a class="btn secondary" href="{% if creating %}{% url 'patients:list' %}{% else %}{% url 'patients:detail' patient.pk %}{% endif %}">Cancel</a>
+  </div>
+</form>
+{% endblock %}

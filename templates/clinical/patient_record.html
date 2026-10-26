@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}Clinical record {{ patient.patient_id }} - {{ clinic.name }}{% endblock %}
+{% block content %}
+<div class="head">
+  <div><h1>{{ patient.full_name }}</h1><p class="muted">{{ patient.patient_id }} &middot; {{ patient.age_display }} &middot; {{ patient.get_sex_display }}</p></div>
+  <a class="btn secondary" href="{% url 'patients:detail' patient.pk %}">Patient details</a>
+</div>
+{% if allergy_state == "ALLERGIES" %}
+  <div class="alert-banner danger"><strong>Allergies:</strong> {% for a in active_allergies %}{{ a.allergen }}{% if a.reaction %} ({{ a.reaction }}){% endif %}{% if not forloop.last %}, {% endif %}{% endfor %}</div>
+{% elif allergy_state == "NKDA" %}<div class="alert-banner ok">No known allergies.</div>
+{% else %}<div class="alert-banner warn">Allergies not recorded yet.</div>{% endif %}
+<div class="panel"><h2>History</h2>
+  <ul class="side-list">{% for h in history_items %}<li>{{ h.get_kind_display }}: {{ h.description }} {% if h.since %}<span class="muted">({{ h.since }})</span>{% endif %}</li>{% empty %}<li class="muted">None recorded.</li>{% endfor %}</ul>
+  <h3>Medicines taken now</h3>
+  <ul class="side-list">{% for m in current_meds %}<li>{{ m.name }} <span class="muted">{{ m.dose_notes }}</span></li>{% empty %}<li class="muted">None recorded.</li>{% endfor %}</ul>
+</div>
+<h2>Visits</h2>
+<div class="table-wrap"><table>
+  <thead><tr><th>Date</th><th>Diagnosis</th><th>Status</th><th>Prescriptions</th><th></th></tr></thead>
+  <tbody>{% for e in encounters %}
+    <tr><td>{{ e.started_at|date:"d/m/Y" }}</td>
+    <td>{% for d in e.diagnoses.all %}{% if not d.is_void %}{{ d.description }}{% if not forloop.last %}; {% endif %}{% endif %}{% endfor %}</td>
+    <td>{{ e.get_status_display }}</td>
+    <td>{% for r in e.prescriptions.all %}{% if r.number %}<a href="{% url 'clinical:rx_print' r.pk %}" target="_blank" rel="noopener">{{ r.number }}</a> {% endif %}{% endfor %}</td>
+    <td><a href="{% url 'clinical:encounter' e.pk %}">Open</a></td></tr>
+  {% empty %}<tr><td colspan="5">No visits recorded yet.</td></tr>{% endfor %}</tbody>
+</table></div>
+{% endblock %}

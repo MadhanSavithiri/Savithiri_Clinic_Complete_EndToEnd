@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}My shift - {{ clinic.name }}{% endblock %}
+{% block content %}
+<h1>My shift</h1>
+{% if not shift %}
+  <div class="panel" style="max-width:34rem"><h2>Open a shift</h2>
+    <form method="post" action="{% url 'sales:shift_open' %}" novalidate>{% csrf_token %}
+      {% include "sales/_field.html" with field=open_form.opening_cash %}
+      <button class="btn" type="submit">Open shift</button></form></div>
+{% else %}
+  <p class="muted">Open since {{ shift.opened_at|date:"d/m/Y h:i A" }}. Opening cash &#8377; {{ shift.opening_cash }}.</p>
+  <div class="table-wrap" style="max-width:36rem"><table>
+    <thead><tr><th>Method</th><th>Received</th><th>Refunded</th><th>Net</th></tr></thead>
+    <tbody>{% for m in summary.by_method %}<tr><td>{{ m.label }}</td><td>&#8377; {{ m.in }}</td><td>&#8377; {{ m.out }}</td><td>&#8377; {{ m.net }}</td></tr>{% endfor %}
+      <tr><th>Total collected</th><th colspan="3">&#8377; {{ summary.collected }} in {{ summary.bills }} bill{{ summary.bills|pluralize }}</th></tr></tbody>
+  </table></div>
+  <p><strong>Cash that should be in the drawer: &#8377; {{ summary.expected_cash }}</strong> <span class="muted">(opening cash + cash received - cash refunded)</span></p>
+  <div class="panel" style="max-width:34rem"><h2>Close the shift</h2>
+    <p class="muted">Count the cash in the drawer and enter it. Any difference is recorded.</p>
+    <form method="post" action="{% url 'sales:shift_close' %}" novalidate>{% csrf_token %}
+      {% include "sales/_field.html" with field=close_form.counted_cash %}
+      {% include "sales/_field.html" with field=close_form.notes %}
+      <button class="btn danger" type="submit">Close shift</button></form></div>
+{% endif %}
+<h2>Earlier shifts</h2>
+<div class="table-wrap"><table>
+  <thead><tr><th>Opened</th><th>Closed</th><th>Expected cash</th><th>Counted</th><th>Difference</th></tr></thead>
+  <tbody>{% for s in recent %}<tr><td>{{ s.opened_at|date:"d/m/Y h:i A" }}</td><td>{{ s.closed_at|date:"d/m/Y h:i A" }}</td>
+    <td>&#8377; {{ s.expected_cash }}</td><td>&#8377; {{ s.counted_cash }}</td><td>&#8377; {{ s.variance }}</td></tr>
+  {% empty %}<tr><td colspan="5">No closed shifts yet.</td></tr>{% endfor %}</tbody>
+</table></div>
+{% endblock %}

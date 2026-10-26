@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Purchase {{ inv.number|default:"draft" }} - {{ clinic.name }}{% endblock %}
+{% block content %}
+<div class="head"><div><h1>Purchase {{ inv.number|default:"(draft)" }}</h1>
+  <p class="muted">{{ inv.supplier.name }} &middot; invoice {{ inv.supplier_invoice_number }} &middot; {{ inv.invoice_date|date:"d/m/Y" }} &middot; <span class="badge {% if draft %}warn{% endif %}">{{ inv.get_status_display }}</span></p></div>
+  <a class="btn secondary" href="{% url 'pharmacy:purchase_list' %}">Back</a></div>
+{% if draft %}<div class="msg warning">This is a draft. Nothing is in stock until you press <strong>Receive into stock</strong>.</div>{% endif %}
+<div class="table-wrap"><table>
+  <thead><tr><th>Medicine</th><th>Batch</th><th>Expiry</th><th>Packs</th><th>Units/pack</th><th>Total units</th><th>Price/pack</th><th>MRP/pack</th><th>Line total</th>{% if draft %}<th></th>{% endif %}</tr></thead>
+  <tbody>{% for i in items %}
+    <tr><td>{{ i.medicine.brand_name }} {{ i.medicine.strength }}</td><td>{{ i.batch_number }}</td><td>{{ i.expiry_date|date:"d/m/Y" }}</td><td>{{ i.packs }}</td><td>{{ i.units_per_pack }}</td><td>{{ i.quantity_units }}</td>
+    <td>{{ i.purchase_price_per_pack }}</td><td>{{ i.mrp_per_pack }}</td><td>{{ i.line_total }}</td>
+    {% if draft %}<td><form class="mini-form" method="post" action="{% url 'pharmacy:purchase_item_remove' inv.pk i.pk %}">{% csrf_token %}<button class="btn small secondary danger" type="submit">Remove</button></form></td>{% endif %}</tr>
+  {% empty %}<tr><td colspan="10">No items yet.</td></tr>{% endfor %}</tbody>
+</table></div>
+<dl class="facts" style="margin-top:1rem">
+  <dt>Items total</dt><dd>&#8377; {{ inv.lines_total }}</dd><dt>Discount</dt><dd>&#8377; {{ inv.discount_amount }}</dd>
+  <dt>Tax (as entered)</dt><dd>&#8377; {{ inv.tax_amount }}</dd><dt>Total payable</dt><dd><strong>&#8377; {{ inv.total_payable }}</strong></dd>
+</dl>
+{% if draft %}
+<div class="actions no-print">
+  <form method="post" action="{% url 'pharmacy:purchase_receive' inv.pk %}" class="inline-form">{% csrf_token %}<button class="btn" type="submit">Receive into stock</button></form>
+  <a class="btn secondary" href="{% url 'pharmacy:purchase_edit' inv.pk %}">Edit invoice details</a>
+  <form method="post" action="{% url 'pharmacy:purchase_discard' inv.pk %}" class="inline-form">{% csrf_token %}<button class="btn secondary danger" type="submit">Discard draft</button></form>
+</div>
+<div class="panel no-print" style="margin-top:1rem"><h2>Add an item</h2>
+  <form method="post" action="{% url 'pharmacy:purchase_item_add' inv.pk %}" novalidate>{% csrf_token %}
+    {% include "clinical/_fields.html" with form=item_form grid=True %}
+    <button class="btn" type="submit">Add item</button></form></div>
+{% else %}
+  <p class="muted">Received {{ inv.received_at|date:"d/m/Y h:i A" }} by {{ inv.received_by.username }}. A received purchase cannot be edited: fix stock with an adjustment or a return on the batch page.</p>
+{% endif %}
+{% endblock %}

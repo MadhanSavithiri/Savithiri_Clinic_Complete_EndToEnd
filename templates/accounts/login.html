@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Sign in - {{ clinic.name }}{% endblock %}
+{% block public %}
+<div class="login-card">
+  <div class="brand-name">{{ clinic.name }}</div>
+  <p class="muted">{{ clinic.tagline }}</p>
+  <h1>Sign in</h1>
+  {% if form.non_field_errors %}<div class="msg error" role="alert">{{ form.non_field_errors.0 }}</div>{% endif %}
+  <form method="post" novalidate>{% csrf_token %}
+    <input type="hidden" name="next" value="{{ next }}">
+    <div class="field">
+      <label for="{{ form.username.id_for_label }}">Username</label>
+      {{ form.username }}
+    </div>
+    <div class="field">
+      <label for="{{ form.password.id_for_label }}">Password</label>
+      {{ form.password }}
+    </div>
+    <button class="btn" type="submit">Sign in</button>
+  </form>
+  <p class="muted" style="margin-top:1rem;font-size:.9rem">Too many wrong passwords lock the account for a few minutes. Ask the clinic administrator if you are locked out.</p>
+</div>
+{% endblock %}

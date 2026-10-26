@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}Consultation - {{ clinic.name }}{% endblock %}
+{% block content %}
+<div class="head">
+  <div><h1>Doctor's workspace</h1>
+  <p class="muted">{{ today|date:"l, d/m/Y" }} &middot; <span class="live-status" data-live-status aria-live="polite">Live</span></p></div>
+  <a class="btn secondary" href="{% url 'patients:list' %}">Find a patient</a>
+</div>
+<div data-live-url="{% url 'queueing:queue_partial' %}" data-live-interval="4000">
+  {% include "queueing/_board.html" %}
+</div>
+<h2>Follow-ups due</h2>
+<div class="table-wrap"><table>
+  <thead><tr><th>Due</th><th>Patient</th><th>Note</th></tr></thead>
+  <tbody>{% for f in follow_ups %}
+    <tr><td>{{ f.due_date|date:"d/m/Y" }}{% if f.due_date < today %} <span class="badge bad">Overdue</span>{% endif %}</td>
+    <td><a href="{% url 'clinical:record' f.patient.pk %}">{{ f.patient.full_name }}</a> <span class="muted">{{ f.patient.patient_id }}</span></td><td>{{ f.notes }}</td></tr>
+  {% empty %}<tr><td colspan="3">No follow-ups are due.</td></tr>{% endfor %}</tbody>
+</table></div>
+<h2>Recently completed</h2>
+<div class="table-wrap"><table>
+  <thead><tr><th>When</th><th>Patient</th><th></th></tr></thead>
+  <tbody>{% for e in recent %}
+    <tr><td>{{ e.completed_at|date:"d/m/Y h:i A" }}</td><td>{{ e.patient.full_name }} <span class="muted">{{ e.patient.patient_id }}</span></td>
+    <td><a href="{% url 'clinical:encounter' e.pk %}">Open</a></td></tr>
+  {% empty %}<tr><td colspan="3">Nothing completed yet.</td></tr>{% endfor %}</tbody>
+</table></div>
+{% endblock %}

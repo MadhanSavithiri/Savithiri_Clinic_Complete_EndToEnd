@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}Today's queue - {{ clinic.name }}{% endblock %}
+{% block content %}
+<div class="head">
+  <div><h1>Today's queue</h1>
+  <p class="muted">{{ today|date:"l, d/m/Y" }} &middot; <span class="live-status" data-live-status aria-live="polite">Live</span></p></div>
+  <a class="btn secondary" href="{% url 'patients:list' %}">Find a patient to add</a>
+</div>
+<div data-live-url="{% url 'queueing:queue_partial' %}" data-live-interval="4000">
+  {% include "queueing/_board.html" %}
+</div>
+<noscript><p class="msg warning">JavaScript is off, so this list will not refresh by itself. Reload the page to update it.</p></noscript>
+{% endblock %}

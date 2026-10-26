@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Home - {{ clinic.name }}{% endblock %}
+{% block content %}
+<h1>Welcome, {{ request.user.get_full_name|default:request.user.username }}</h1>
+<p class="muted">Signed in as {{ request.user.get_role_display }}. You only see the areas your role may use.</p>
+<div class="cards">
+  {% for c in cards %}
+    {% if c.url_name %}
+      <div class="card live"><a class="stretch" href="{% url c.url_name %}"><h3>{{ c.title }}</h3><p>{{ c.text }}</p></a></div>
+    {% else %}
+      <div class="card soon"><h3>{{ c.title }}</h3><p>{{ c.text }}</p><span class="badge off">Not built yet: Phase {{ c.phase }}</span></div>
+    {% endif %}
+  {% empty %}
+    <div class="card"><p>Your role has no areas yet. Ask the administrator.</p></div>
+  {% endfor %}
+</div>
+{% endblock %}

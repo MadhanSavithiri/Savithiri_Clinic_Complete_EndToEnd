@@ -1,0 +1,61 @@
+{% load static accounts_tags %}<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}{{ clinic.name }}{% endblock %}</title>
+  <link rel="stylesheet" href="{% static 'css/app.css' %}">
+  <script src="{% static 'js/live.js' %}" defer></script>
+</head>
+<body>
+{% if request.user.is_authenticated %}
+<div class="shell">
+  <aside class="side">
+    <div>
+      <div class="brand-name">{{ clinic.name }}</div>
+      <div class="brand-sub">{{ clinic.tagline }}</div>
+    </div>
+    <nav class="nav" aria-label="Main">
+      {% if not request.user.must_change_password %}
+        <a href="{% url 'home' %}" {% if request.resolver_match.url_name == 'home' %}aria-current="page"{% endif %}>Home</a>
+        {% if request.user|can:"patients.view" %}<a href="{% url 'patients:list' %}" {% if request.resolver_match.namespace == 'patients' %}aria-current="page"{% endif %}>Patients</a>{% endif %}
+        {% if request.user|can:"queue.view" %}
+          <a href="{% url 'queueing:queue' %}" {% if request.resolver_match.url_name == 'queue' %}aria-current="page"{% endif %}>Today's queue</a>
+          <a href="{% url 'queueing:appointment_list' %}" {% if request.resolver_match.url_name == 'appointment_list' %}aria-current="page"{% endif %}>Appointments</a>
+        {% endif %}
+        {% if request.user|can:"clinical.view_notes" %}<a href="{% url 'clinical:dashboard' %}" {% if request.resolver_match.namespace == 'clinical' %}aria-current="page"{% endif %}>Consultation</a>{% endif %}
+        {% if request.user|can:"pharmacy.view_stock" %}<a href="{% url 'pharmacy:list' %}" {% if request.resolver_match.url_name == 'list' and request.resolver_match.namespace == 'pharmacy' %}aria-current="page"{% endif %}>Medicines</a>
+          <a href="{% url 'pharmacy:stock_overview' %}" {% if request.resolver_match.url_name == 'stock_overview' %}aria-current="page"{% endif %}>Stock and expiry</a>{% endif %}
+        {% if request.user|can:"pharmacy.manage_purchases" %}<a href="{% url 'pharmacy:purchase_list' %}" {% if 'purchase' in request.resolver_match.url_name %}aria-current="page"{% endif %}>Purchases</a>{% endif %}
+        {% if request.user|can:"sales.counter_sell" %}
+          <a href="{% url 'sales:counter' %}" {% if request.resolver_match.url_name == 'counter' %}aria-current="page"{% endif %}>Counter billing</a>
+          <a href="{% url 'sales:shift' %}" {% if request.resolver_match.url_name == 'shift' %}aria-current="page"{% endif %}>My shift</a>
+        {% endif %}
+        {% if request.user|can:"sales.view_own" %}<a href="{% url 'sales:my_sales' %}" {% if request.resolver_match.url_name == 'my_sales' %}aria-current="page"{% endif %}>My sales</a>{% endif %}
+        {% if request.user|can:"sales.view_all" %}<a href="{% url 'sales:all_sales' %}" {% if request.resolver_match.url_name == 'all_sales' %}aria-current="page"{% endif %}>Counter sales (all)</a>{% endif %}
+        {% if request.user|can:"accounts.manage_users" %}
+          <a href="{% url 'accounts:user_list' %}" {% if request.resolver_match.namespace == 'accounts' and 'user' in request.resolver_match.url_name %}aria-current="page"{% endif %}>Staff accounts</a>
+        {% endif %}
+      {% endif %}
+      <a href="{% url 'accounts:password_change' %}" {% if request.resolver_match.url_name == 'password_change' %}aria-current="page"{% endif %}>Change password</a>
+    </nav>
+    <div class="side-foot">
+      <div class="who">{{ request.user.get_full_name|default:request.user.username }}</div>
+      <div class="role">{{ request.user.get_role_display }}</div>
+      <form method="post" action="{% url 'accounts:logout' %}">{% csrf_token %}
+        <button class="btn light" type="submit">Sign out</button>
+      </form>
+    </div>
+  </aside>
+  <main class="main" id="content">
+    {% for message in messages %}<div class="msg {{ message.tags }}" role="status">{{ message }}</div>{% endfor %}
+    {% block content %}{% endblock %}
+  </main>
+</div>
+{% else %}
+<main class="login-wrap" id="content">
+  <div>{% block public %}{% endblock %}</div>
+</main>
+{% endif %}
+</body>
+</html>

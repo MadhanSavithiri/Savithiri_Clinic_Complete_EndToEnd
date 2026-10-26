@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Appointments - {{ clinic.name }}{% endblock %}
+{% block content %}
+<h1>Appointments</h1>
+<form method="get" class="toolbar">
+  <div class="field"><label for="date">Date</label><input id="date" type="date" name="date" value="{{ day|date:'Y-m-d' }}"></div>
+  <button class="btn secondary" type="submit">Show</button>
+</form>
+<p class="muted">{{ day|date:"l, d/m/Y" }}{% if is_today %} (today){% endif %}. To book, open the patient and choose "Book appointment".</p>
+<div class="table-wrap"><table>
+  <thead><tr><th>Time</th><th>Patient</th><th>Number</th><th>Type</th><th>Status</th><th></th></tr></thead>
+  <tbody>
+  {% for a in appointments %}
+    <tr>
+      <td>{{ a.scheduled_time|date:"h:i A"|default:"-" }}</td>
+      <td><a href="{% url 'patients:detail' a.patient.pk %}">{{ a.patient.full_name }}</a> <span class="muted">{{ a.patient.patient_id }}</span></td>
+      <td>{{ a.number }}</td><td>{{ a.get_kind_display }}</td>
+      <td><span class="badge {% if a.status == 'CANCELLED' %}bad{% elif a.status == 'CHECKED_IN' %}off{% endif %}">{{ a.get_status_display }}</span>{% if a.cancel_reason %} <span class="muted">{{ a.cancel_reason }}</span>{% endif %}</td>
+      <td>
+        {% if a.status == 'SCHEDULED' %}
+          {% if is_today and can_add %}<form method="post" action="{% url 'queueing:appointment_checkin' a.pk %}" class="inline-form">{% csrf_token %}<button class="btn small" type="submit">Check in</button></form>{% endif %}
+          {% if can_cancel %}<a class="btn small secondary danger" href="{% url 'queueing:appointment_cancel' a.pk %}">Cancel</a>{% endif %}
+        {% endif %}
+      </td>
+    </tr>
+  {% empty %}<tr><td colspan="6">No appointments on this date.</td></tr>{% endfor %}
+  </tbody>
+</table></div>
+{% endblock %}

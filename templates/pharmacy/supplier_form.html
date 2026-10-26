@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}Supplier - {{ clinic.name }}{% endblock %}
+{% block content %}
+<h1>{% if supplier %}Edit {{ supplier.name }}{% else %}Add supplier{% endif %}</h1>
+<p class="muted">Enter licence and tax numbers only as shown on the supplier's documents.</p>
+<form method="post" class="form" novalidate>{% csrf_token %}
+  {% include "clinical/_fields.html" %}
+  <div class="actions"><button class="btn" type="submit">Save</button><a class="btn secondary" href="{% url 'pharmacy:supplier_list' %}">Cancel</a></div>
+</form>
+{% endblock %}

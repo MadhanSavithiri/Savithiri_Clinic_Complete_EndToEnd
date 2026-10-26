@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Issue prescription - {{ clinic.name }}{% endblock %}
+{% block content %}
+<h1>Issue prescription{% if rx.supersedes_id %} (correction, version {{ rx.version }}){% endif %}</h1>
+<p class="muted">{{ patient.full_name }} &middot; {{ patient.patient_id }} &middot; {{ patient.age_display }} / {{ patient.get_sex_display }}</p>
+{% if rx.correction_reason %}<div class="msg info">Reason for correction: {{ rx.correction_reason }}</div>{% endif %}
+<div class="table-wrap"><table>
+  <thead><tr><th>#</th><th>Medicine</th><th>Dose</th><th>Route</th><th>Frequency</th><th>Duration</th><th>Qty</th><th>Instructions</th></tr></thead>
+  <tbody>{% for i in rx.items.all %}
+    <tr><td>{{ i.line_no }}</td><td>{{ i.medicine_name }} {{ i.strength }} {{ i.dosage_form }}</td><td>{{ i.dose }}</td><td>{{ i.route }}</td><td>{{ i.frequency }}{% if i.meal_text %}<br>{{ i.meal_text }}{% endif %}</td><td>{{ i.duration }}</td><td>{{ i.quantity }}</td><td>{{ i.instructions }}</td></tr>
+  {% empty %}<tr><td colspan="8">No medicines on this draft.</td></tr>{% endfor %}</tbody>
+</table></div>
+<form method="post" class="form" style="margin-top:1rem">{% csrf_token %}
+  {% if alerts %}
+    <div class="alert-banner danger" role="alert"><strong>Allergy alerts</strong>
+      <ul>{% for a in alerts %}<li>{{ a }}</li>{% endfor %}</ul></div>
+    <div class="field"><label for="ack"><input id="ack" type="checkbox" name="acknowledge"> I have reviewed these alerts and still want to issue this prescription</label></div>
+  {% endif %}
+  <p class="muted">Once issued, the prescription cannot be edited. A mistake is fixed with a correction (a new version). Alerts match recorded allergy names only; drug interactions and cross-reactions are not checked.</p>
+  <div class="actions"><button class="btn" type="submit">Issue prescription</button><a class="btn secondary" href="{% url 'clinical:encounter' enc.pk %}#prescription">Back</a></div>
+</form>
+{% endblock %}

@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Stock and expiry - {{ clinic.name }}{% endblock %}
+{% block content %}
+<h1>Stock and expiry</h1>
+{% include "pharmacy/_stock_nav.html" %}
+<p class="no-print">Show:
+  <a href="?">All</a> &middot; <a href="?show=low">Low stock</a> &middot; <a href="?show=out">Out of stock</a> &middot;
+  <a href="?show=near">Near expiry</a> &middot; <a href="?show=expired">Expired</a></p>
+<div class="table-wrap"><table>
+  <thead><tr><th>Medicine</th><th>Usable units</th><th>Near expiry</th><th>Expired</th><th>Recalled</th><th>Reorder at</th><th>Flags</th></tr></thead>
+  <tbody>{% for r in rows %}
+    <tr><td><a href="{% url 'pharmacy:medicine_detail' r.medicine.pk %}">{{ r.medicine.brand_name }}</a> {{ r.medicine.strength }} <span class="muted">{{ r.medicine.dosage_form }}</span></td>
+    <td><strong>{{ r.usable }}</strong> {{ r.medicine.unit }}</td><td>{{ r.near }}</td><td>{{ r.expired }}</td><td>{{ r.recalled }}</td>
+    <td>{% if r.medicine.reorder_threshold %}{{ r.medicine.reorder_threshold }}{% else %}-{% endif %}</td>
+    <td>{% if r.out %}<span class="badge bad">Out of stock</span>{% endif %}{% if r.low %}<span class="badge warn">Low</span>{% endif %}
+      {% if r.near %}<span class="badge warn">Near expiry</span>{% endif %}{% if r.expired %}<span class="badge bad">Expired stock</span>{% endif %}
+      {% if r.recalled %}<span class="badge bad">Recalled</span>{% endif %}</td></tr>
+  {% empty %}<tr><td colspan="7">Nothing to show. Add medicines to the catalogue, then receive a purchase.</td></tr>{% endfor %}</tbody>
+</table></div>
+<p class="muted">"Usable" excludes expired and recalled batches. Expired and recalled stock cannot be dispensed.</p>
+{% endblock %}

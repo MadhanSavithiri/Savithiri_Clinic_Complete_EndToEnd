@@ -1,0 +1,252 @@
+{% extends "base.html" %}
+{% load static accounts_tags %}
+{% block title %}Consultation {{ patient.patient_id }} - {{ clinic.name }}{% endblock %}
+{% block content %}
+<div class="head">
+  <div>
+    <h1>{{ patient.full_name }}</h1>
+    <p class="muted">{{ patient.patient_id }} &middot; {{ patient.age_display }} / {{ patient.get_sex_display }}
+      {% if patient.phone %}&middot; {{ patient.phone }}{% endif %}
+      {% if enc.queue_token %}&middot; Token {{ enc.queue_token.token_number }}{% endif %}
+      &middot; {{ enc.started_at|date:"d/m/Y h:i A" }}
+      &middot; <span class="badge {% if not in_progress %}off{% endif %}">{{ enc.get_status_display }}</span></p>
+  </div>
+  <div class="actions no-print" style="margin:0">
+    <a class="btn secondary" href="{% url 'clinical:dashboard' %}">Back to workspace</a>
+    <a class="btn secondary" href="{% url 'clinical:record' patient.pk %}">Full clinical record</a>
+  </div>
+</div>
+
+{% if allergy_state == "ALLERGIES" %}
+  <div class="alert-banner danger" role="alert"><strong>Allergies:</strong>
+    {% for a in active_allergies %}{{ a.allergen }}{% if a.reaction %} ({{ a.reaction }}){% endif %} <span class="sev-{{ a.severity }}">[{{ a.get_severity_display }}]</span>{% if not forloop.last %}; {% endif %}{% endfor %}</div>
+{% elif allergy_state == "NKDA" %}<div class="alert-banner ok">No known allergies (confirmed).</div>
+{% else %}<div class="alert-banner warn"><strong>Allergies not recorded yet.</strong> Ask the patient, then record them or confirm "no known allergies" in the side panel.</div>{% endif %}
+
+{% if draft %}
+  <div class="alert-banner warn no-print" role="status" id="draft-banner" style="display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap">
+    <span><strong>A draft prescription is open{% if draft.supersedes_id %} (correction){% endif %}.</strong>
+      {{ draft.items.all|length }} medicine{{ draft.items.all|length|pluralize }} so far. It must be issued or discarded before this consultation can be completed.</span>
+    <a class="btn" href="#prescription">Go to the draft</a>
+  </div>
+{% endif %}
+
+{% if not in_progress %}
+  <div class="msg info">This consultation is completed{% if enc.completed_at %} ({{ enc.completed_at|date:"d/m/Y h:i A" }}){% endif %} and is read-only.
+    You can add an addendum below{% if can_correct %}, or <a href="{% url 'clinical:reopen' enc.pk %}">reopen it to correct it</a> (the earlier version is kept){% endif %}.</div>
+{% endif %}
+
+<div class="consult">
+<div>
+
+<section class="panel" id="notes">
+  <h2>Consultation notes</h2>
+  {% if editable %}
+  <form method="post" action="{% url 'clinical:notes_save' enc.pk %}" novalidate>{% csrf_token %}
+    {% include "clinical/_fields.html" with form=notes_form %}
+    <button class="btn" type="submit">Save notes</button>
+  </form>
+  {% else %}
+  <dl class="facts" style="max-width:none">
+    <dt>Presenting complaints</dt><dd class="note">{{ enc.presenting_complaints|default:"-" }}</dd>
+    <dt>Duration</dt><dd>{{ enc.symptom_duration|default:"-" }}</dd>
+    <dt>Examination</dt><dd class="note">{{ enc.examination_findings|default:"-" }}</dd>
+    <dt>Assessment</dt><dd class="note">{{ enc.assessment|default:"-" }}</dd>
+    <dt>Treatment plan</dt><dd class="note">{{ enc.treatment_plan|default:"-" }}</dd>
+    <dt>Advice</dt><dd class="note">{{ enc.advice|default:"-" }}</dd>
+    <dt>Follow-up</dt><dd>{% if enc.follow_up_date %}{{ enc.follow_up_date|date:"d/m/Y" }} {{ enc.follow_up_notes }}{% else %}-{% endif %}</dd>
+  </dl>
+  {% endif %}
+</section>
+
+<section class="panel" id="vitals">
+  <h2>Vitals</h2>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Time</th><th>Ht / Wt / BMI</th><th>BP</th><th>Pulse</th><th>Temp</th><th>SpO2</th><th>RR</th><th>Other</th><th></th></tr></thead>
+    <tbody>
+    {% for v in vitals %}
+      <tr {% if v.is_void %}class="row-void"{% endif %}>
+        <td>{{ v.recorded_at|date:"h:i A" }}</td>
+        <td>{{ v.height_cm|default:"-" }} / {{ v.weight_kg|default:"-" }} / {{ v.bmi|default:"-" }}{% if v.bmi_text %}<br><span class="muted">{{ v.bmi_text }}</span>{% endif %}</td>
+        <td>{% if v.systolic %}{{ v.systolic }}/{{ v.diastolic }}{% else %}-{% endif %}</td>
+        <td>{{ v.pulse|default:"-" }}</td>
+        <td>{% if v.temperature_c %}{{ v.temperature_f }} °F ({{ v.temperature_c }} °C){% else %}-{% endif %}</td>
+        <td>{{ v.spo2|default:"-" }}</td><td>{{ v.respiratory_rate|default:"-" }}</td><td>{{ v.other_observations }}</td>
+        <td>{% if v.is_void %}<span class="badge bad">Error: {{ v.void_reason }}</span>
+          {% elif editable %}<form class="mini-form" method="post" action="{% url 'clinical:vitals_void' enc.pk v.pk %}">{% csrf_token %}
+            <input type="text" name="reason" placeholder="Reason" aria-label="Reason for error" required><button class="btn small secondary danger" type="submit">Wrong</button></form>{% endif %}</td>
+      </tr>
+    {% empty %}<tr><td colspan="9">No vitals recorded for this visit.</td></tr>{% endfor %}
+    </tbody>
+  </table></div>
+  {% if editable %}
+  <h3>Add a reading</h3>
+  <form method="post" action="{% url 'clinical:vitals_add' enc.pk %}" novalidate>{% csrf_token %}
+    {% include "clinical/_fields.html" with form=vitals_form grid=True %}
+    <div id="bmi-live" class="bmi-live" aria-live="polite" data-adult="{{ bmi_adult|yesno:'1,0' }}"
+         data-under="{{ bmi_cut.under }}" data-over="{{ bmi_cut.over }}" data-obese="{{ bmi_cut.obese }}" data-label="{{ bmi_cut.label }}">
+      Enter height (cm) and weight (kg) to see the BMI.</div>
+    <button class="btn" type="submit">Record vitals</button>
+  </form>
+  {% endif %}
+  {% if previous %}
+  <h3>Earlier visits</h3>
+  <ul class="side-list">{% for e in previous %}{% for v in e.vitals.all %}{% if forloop.last and not v.is_void %}
+    <li>{{ e.started_at|date:"d/m/Y" }}: {% if v.systolic %}BP {{ v.systolic }}/{{ v.diastolic }} {% endif %}{% if v.weight_kg %}Wt {{ v.weight_kg }} kg {% endif %}{% if v.pulse %}Pulse {{ v.pulse }} {% endif %}{% if v.temperature_c %}Temp {{ v.temperature_f }} °F{% endif %}</li>
+  {% endif %}{% endfor %}{% endfor %}</ul>
+  {% endif %}
+</section>
+
+<section class="panel" id="diagnosis">
+  <h2>Diagnosis</h2>
+  <ul class="side-list">
+    {% for d in diagnoses %}
+      <li {% if d.is_void %}class="row-void"{% endif %}>
+        <span {% if d.is_void %}style="text-decoration:line-through"{% endif %}>{{ d.description }}{% if d.code %} <span class="muted">[{{ d.code_system }} {{ d.code }}]</span>{% endif %}</span>
+        {% if d.is_primary and not d.is_void %}<span class="badge">Primary</span>{% endif %}
+        {% if d.is_void %}<span class="badge bad">Removed</span>
+        {% elif editable %}<form class="mini-form" method="post" action="{% url 'clinical:diagnosis_void' enc.pk d.pk %}">{% csrf_token %}<button class="btn small secondary danger" type="submit">Remove</button></form>{% endif %}
+      </li>
+    {% empty %}<li class="muted">No diagnosis recorded.</li>{% endfor %}
+  </ul>
+  {% if editable %}
+  <form method="post" action="{% url 'clinical:diagnosis_add' enc.pk %}" novalidate>{% csrf_token %}
+    {% include "clinical/_fields.html" with form=dx_form grid=True %}
+    <button class="btn" type="submit">Add diagnosis</button>
+  </form>
+  {% endif %}
+</section>
+
+<section class="panel" id="prescription">
+  <h2>Prescription</h2>
+  <p class="muted">Allergy alerts match the allergy names recorded here only. Drug interactions and cross-reactions are <strong>not</strong> checked: no licensed reference dataset is loaded. The doctor decides.</p>
+
+  {% if final %}
+    <h3>Issued: {{ final.number }}{% if final.version > 1 %} (version {{ final.version }}){% endif %}</h3>
+    {% include "clinical/_rx_items.html" with rx=final editable_items=False %}
+    <div class="actions no-print">
+      <a class="btn" href="{% url 'clinical:rx_print' final.pk %}" target="_blank" rel="noopener">Print prescription</a>
+      {% if can_correct %}<a class="btn secondary" href="{% url 'clinical:rx_correct' final.pk %}">Correct (new version)</a>
+      <a class="btn secondary danger" href="{% url 'clinical:rx_cancel' final.pk %}">Cancel prescription</a>{% endif %}
+    </div>
+  {% endif %}
+
+  {% if draft %}
+    <h3>Draft{% if draft.supersedes_id %}: correction (version {{ draft.version }}){% endif %}</h3>
+    {% if draft.correction_reason %}<p class="muted">Reason for correction: {{ draft.correction_reason }}</p>{% endif %}
+    {% if alerts %}<div class="alert-banner danger" role="alert"><strong>Allergy alerts</strong><ul>{% for a in alerts %}<li>{{ a }}</li>{% endfor %}</ul></div>{% endif %}
+    {% include "clinical/_rx_items.html" with rx=draft editable_items=draft_editable %}
+    {% if draft_editable %}
+    <div class="actions no-print">
+      {% if draft.items.all %}<a class="btn" href="{% url 'clinical:rx_finalize' draft.pk %}">Review and issue</a>{% endif %}
+      <form method="post" action="{% url 'clinical:rx_discard' draft.pk %}" class="inline-form">{% csrf_token %}<button class="btn secondary danger" type="submit">Discard draft</button></form>
+    </div>
+    {% endif %}
+  {% endif %}
+
+  {% if show_item_form %}
+    <h3>Add a medicine</h3>
+    {% if catalogue_empty %}<p class="msg warning">The medicine catalogue is empty. Ask the pharmacy to add medicines, or type the name below.</p>{% endif %}
+    <form method="post" action="{% url 'clinical:rx_item_add' enc.pk %}" novalidate>{% csrf_token %}
+      {% include "clinical/_fields.html" with form=item_form grid=True %}
+      <div id="qty-explain" class="help" aria-live="polite"></div>
+      <datalist id="freq-list">{% for f in frequency_hints %}<option value="{{ f }}">{% endfor %}</datalist>
+      <button class="btn" type="submit">Add to prescription</button>
+    </form>
+  {% elif not final and not draft %}<p class="muted">Prescriptions can be written while the consultation is in progress.</p>{% endif %}
+
+  {% for r in rxs %}{% if r.status == "SUPERSEDED" or r.status == "CANCELLED" %}
+    <p class="muted">Earlier: {{ r.number }} v{{ r.version }} ({{ r.get_status_display }}){% if r.cancel_reason %}: {{ r.cancel_reason }}{% endif %}
+      <a href="{% url 'clinical:rx_print' r.pk %}" target="_blank" rel="noopener">view</a></p>
+  {% endif %}{% endfor %}
+</section>
+
+<section class="panel" id="referral">
+  <h2>Referral</h2>
+  <ul class="side-list">{% for r in referrals %}<li><strong>{{ r.referred_to }}</strong> {{ r.specialty }}<br><span class="note">{{ r.reason }}</span></li>{% empty %}<li class="muted">No referral for this visit.</li>{% endfor %}</ul>
+  {% if can_write %}
+  <form method="post" action="{% url 'clinical:referral_add' enc.pk %}" novalidate>{% csrf_token %}
+    {% include "clinical/_fields.html" with form=referral_form %}
+    <button class="btn secondary" type="submit">Record referral</button>
+  </form>{% endif %}
+</section>
+
+<section class="panel" id="notes-log">
+  <h2>Notes and addenda</h2>
+  {% for n in notes %}<div class="note-meta">{{ n.get_kind_display }} by {{ n.author.get_full_name|default:n.author.username }}, {{ n.created_at|date:"d/m/Y h:i A" }}</div><p class="note">{{ n.text }}</p>
+  {% empty %}<p class="muted">No extra notes.</p>{% endfor %}
+  {% if can_write %}
+  <form method="post" action="{% url 'clinical:note_add' enc.pk %}" novalidate>{% csrf_token %}
+    {% include "clinical/_fields.html" with form=note_form %}
+    <button class="btn secondary" type="submit">{% if in_progress %}Add note{% else %}Add addendum{% endif %}</button>
+  </form>{% endif %}
+  {% if revisions %}<h3>Earlier versions (kept when this consultation was reopened)</h3>
+    <ul class="side-list">{% for r in revisions %}<li>{{ r.created_at|date:"d/m/Y h:i A" }} by {{ r.revised_by.get_full_name|default:r.revised_by.username }}: {{ r.reason }}
+      <details><summary>Show the earlier notes</summary><pre class="note">{{ r.snapshot.presenting_complaints }}
+{{ r.snapshot.examination_findings }}
+{{ r.snapshot.assessment }}
+{{ r.snapshot.treatment_plan }}</pre></details></li>{% endfor %}</ul>{% endif %}
+</section>
+
+{% if editable %}
+<section class="panel no-print" id="complete">
+  <h2>Finish</h2>
+  <p class="muted">Completing needs the presenting complaints and a diagnosis or assessment, and no draft prescription left open. It also completes the patient's queue token.</p>
+  <form method="post" action="{% url 'clinical:complete' enc.pk %}">{% csrf_token %}<button class="btn" type="submit">Complete consultation</button></form>
+</section>
+{% endif %}
+</div>
+
+<aside>
+  <section class="panel" id="allergies">
+    <h2>Allergies</h2>
+    <ul class="side-list">
+      {% for a in active_allergies %}
+        <li><strong>{{ a.allergen }}</strong> <span class="sev-{{ a.severity }}">{{ a.get_severity_display }}</span><br><span class="muted">{{ a.reaction }}</span>
+          {% if can_write %}<form class="mini-form" method="post" action="{% url 'clinical:record_status' enc.pk 'allergy' a.pk %}">{% csrf_token %}
+            <button class="btn small secondary" name="status" value="RESOLVED" type="submit">Resolved</button>
+            <button class="btn small secondary danger" name="status" value="ERROR" type="submit">Error</button></form>{% endif %}</li>
+      {% empty %}<li class="muted">{% if allergy_state == "NKDA" %}No known allergies.{% else %}None recorded.{% endif %}</li>{% endfor %}
+    </ul>
+    {% if can_write %}
+    <form method="post" action="{% url 'clinical:allergy_add' enc.pk %}" novalidate>{% csrf_token %}
+      {% include "clinical/_fields.html" with form=allergy_form %}
+      <button class="btn secondary" type="submit">Add allergy</button>
+    </form>
+    {% if allergy_state != "ALLERGIES" and allergy_state != "NKDA" %}
+      <form method="post" action="{% url 'clinical:allergy_nkda' enc.pk %}" style="margin-top:.6rem">{% csrf_token %}<button class="btn secondary" type="submit">Confirm: no known allergies</button></form>
+    {% endif %}{% endif %}
+  </section>
+
+  <section class="panel" id="history">
+    <h2>History</h2>
+    <ul class="side-list">
+      {% for h in history_items %}<li>{{ h.get_kind_display }}: {{ h.description }} {% if h.since %}<span class="muted">({{ h.since }})</span>{% endif %}
+        {% if can_write %}<form class="mini-form" method="post" action="{% url 'clinical:record_status' enc.pk 'history' h.pk %}">{% csrf_token %}<button class="btn small secondary" name="status" value="RESOLVED" type="submit">Resolved</button><button class="btn small secondary danger" name="status" value="ERROR" type="submit">Error</button></form>{% endif %}</li>
+      {% empty %}<li class="muted">None recorded.</li>{% endfor %}
+    </ul>
+    {% if can_write %}<form method="post" action="{% url 'clinical:history_add' enc.pk %}" novalidate>{% csrf_token %}
+      {% include "clinical/_fields.html" with form=history_form %}<button class="btn secondary" type="submit">Add history</button></form>{% endif %}
+    <h3>Medicines taken now</h3>
+    <ul class="side-list">
+      {% for m in current_meds %}<li>{{ m.name }} <span class="muted">{{ m.dose_notes }}</span>
+        {% if can_write %}<form class="mini-form" method="post" action="{% url 'clinical:record_status' enc.pk 'medicine' m.pk %}">{% csrf_token %}<button class="btn small secondary" name="status" value="RESOLVED" type="submit">Stopped</button><button class="btn small secondary danger" name="status" value="ERROR" type="submit">Error</button></form>{% endif %}</li>
+      {% empty %}<li class="muted">None recorded.</li>{% endfor %}
+    </ul>
+    {% if can_write %}<form method="post" action="{% url 'clinical:medicine_add' enc.pk %}" novalidate>{% csrf_token %}
+      {% include "clinical/_fields.html" with form=med_form %}<button class="btn secondary" type="submit">Add medicine</button></form>{% endif %}
+  </section>
+
+  <section class="panel">
+    <h2>Previous visits</h2>
+    <ul class="side-list">
+      {% for e in previous %}<li><a href="{% url 'clinical:encounter' e.pk %}">{{ e.started_at|date:"d/m/Y" }}</a>
+        {% for d in e.diagnoses.all %}{% if not d.is_void %}{{ d.description }}{% if not forloop.last %}; {% endif %}{% endif %}{% endfor %}</li>
+      {% empty %}<li class="muted">No earlier visits.</li>{% endfor %}
+    </ul>
+  </section>
+</aside>
+</div>
+<script src="{% static 'js/bmi.js' %}" defer></script>
+<script src="{% static 'js/rx_calc.js' %}" defer></script>
+{% endblock %}

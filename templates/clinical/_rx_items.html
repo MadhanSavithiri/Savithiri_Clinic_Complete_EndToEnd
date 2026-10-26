@@ -1,0 +1,8 @@
+<div class="table-wrap"><table>
+  <thead><tr><th>#</th><th>Medicine</th><th>Dose</th><th>Route</th><th>Frequency</th><th>Duration</th><th>Qty</th><th>Instructions</th>{% if editable_items %}<th></th>{% endif %}</tr></thead>
+  <tbody>{% for i in rx.items.all %}
+    <tr><td>{{ i.line_no }}</td><td>{{ i.medicine_name }} {{ i.strength }} {{ i.dosage_form }}</td><td>{{ i.dose }}</td><td>{{ i.route }}</td><td>{{ i.frequency }}{% if i.meal_text %}<br><span class="muted">{{ i.meal_text }}</span>{% endif %}</td><td>{{ i.duration }}</td><td>{{ i.quantity }}</td><td>{{ i.instructions }}</td>
+    {% if editable_items %}<td><a href="{% url 'clinical:rx_item_edit' enc.pk i.pk %}">Edit</a>
+      <form class="mini-form" method="post" action="{% url 'clinical:rx_item_remove' enc.pk i.pk %}">{% csrf_token %}<button class="btn small secondary danger" type="submit">Remove</button></form></td>{% endif %}</tr>
+  {% empty %}<tr><td colspan="9">No medicines yet.</td></tr>{% endfor %}</tbody>
+</table></div>

@@ -1,0 +1,49 @@
+<div class="counts">
+  <div class="count"><b>{{ total }}</b>Registered today</div>
+  <div class="count"><b>{{ counts.WAITING }}</b>Waiting</div>
+  <div class="count"><b>{{ counts.IN_CONSULTATION }}</b>In consultation</div>
+  <div class="count"><b>{{ counts.COMPLETED }}</b>Completed</div>
+  <div class="count"><b>{{ counts.CANCELLED }}</b>Cancelled</div>
+</div>
+
+<h2>Now</h2>
+{% for t in active %}
+<div class="token {{ t.status }}">
+  <div class="num">{{ t.token_number }}</div>
+  <div>
+    <div class="who"><a href="{% url 'patients:detail' t.patient.pk %}">{{ t.patient.full_name }}</a></div>
+    <div class="muted">{{ t.patient.patient_id }} &middot; {{ t.patient.age_display }} / {{ t.patient.get_sex_display }}
+      &middot; registered {{ t.registered_at|date:"h:i A" }} ({{ t.registered_at|timesince }} ago)</div>
+    <span class="badge {% if t.status == 'WAITING' %}warn{% endif %}">{{ t.get_status_display }}</span>
+  </div>
+  <div class="token-actions">
+    {% if can_consult %}
+      {% if t.status == 'WAITING' %}
+        <form method="post" action="{% url 'clinical:start' t.pk %}">{% csrf_token %}<button class="btn small" type="submit">Start consultation</button></form>
+      {% else %}
+        {% if t.encounter %}
+          <a class="btn small" href="{% url 'clinical:encounter' t.encounter.pk %}">Continue consultation</a>
+        {% else %}
+          <form method="post" action="{% url 'clinical:start' t.pk %}">{% csrf_token %}<button class="btn small" type="submit">Open consultation</button></form>
+        {% endif %}
+        <form method="post" action="{% url 'queueing:token_return' t.pk %}">{% csrf_token %}<button class="btn small secondary" type="submit">Back to waiting</button></form>
+      {% endif %}
+    {% endif %}
+    {% if can_cancel and t.status == 'WAITING' %}<a class="btn small secondary danger" href="{% url 'queueing:token_cancel' t.pk %}">Cancel</a>{% endif %}
+    <a class="btn small secondary" href="{% url 'queueing:token_print' t.pk %}" target="_blank" rel="noopener">Slip</a>
+  </div>
+</div>
+{% empty %}
+  <p class="muted">Nobody is waiting.</p>
+{% endfor %}
+
+{% if finished %}
+<h2>Finished today</h2>
+<div class="table-wrap"><table>
+  <thead><tr><th>Token</th><th>Patient</th><th>Status</th><th>Note</th></tr></thead>
+  <tbody>{% for t in finished %}
+    <tr><td>{{ t.token_number }}</td><td>{{ t.patient.full_name }} <span class="muted">{{ t.patient.patient_id }}</span></td>
+    <td><span class="badge {% if t.status == 'CANCELLED' %}bad{% else %}off{% endif %}">{{ t.get_status_display }}</span></td>
+    <td>{{ t.cancel_reason }}</td></tr>{% endfor %}</tbody>
+</table></div>
+{% endif %}

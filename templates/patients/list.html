@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% load accounts_tags %}
+{% block title %}Patients - {{ clinic.name }}{% endblock %}
+{% block content %}
+<div class="head">
+  <div><h1>Patients</h1><p class="muted">Search by patient ID, name (any order), phone digits, or another recorded ID.</p></div>
+  {% if request.user|can:"patients.register" %}<a class="btn" href="{% url 'patients:create' %}">Register new patient</a>{% endif %}
+</div>
+<form method="get" class="toolbar" role="search">
+  <div class="field" style="min-width:22rem"><label for="q">Search</label>
+    <input id="q" type="search" name="q" value="{{ q }}" autofocus autocomplete="off"
+           data-live-search="{% url 'patients:search_partial' %}" data-live-target="#results"></div>
+  <button class="btn secondary" type="submit">Search</button>
+</form>
+<div id="results">{% include "patients/_results.html" %}</div>
+{% endblock %}

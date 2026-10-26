@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}Merge duplicate - {{ clinic.name }}{% endblock %}
+{% block content %}
+<h1>Merge a duplicate into {{ target.patient_id }}</h1>
+<p>You are keeping <strong>{{ target.full_name }}</strong> ({{ target.patient_id }}). Enter the ID of the <em>duplicate</em> record. Its visits and appointments will move here, and the duplicate will be marked as merged. Nothing is deleted.</p>
+<form method="post" class="form" novalidate>{% csrf_token %}
+  <div class="field"><label for="{{ form.other_patient_id.id_for_label }}">{{ form.other_patient_id.label }}</label>{{ form.other_patient_id }}
+    {% for e in form.other_patient_id.errors %}<div class="error">{{ e }}</div>{% endfor %}</div>
+  <div class="actions"><button class="btn" type="submit">Continue</button>
+  <a class="btn secondary" href="{% url 'patients:detail' target.pk %}">Cancel</a></div>
+</form>
+{% endblock %}

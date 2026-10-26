@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}{% if creating %}Add medicine{% else %}Edit medicine{% endif %} - {{ clinic.name }}{% endblock %}
+{% block content %}
+<h1>{% if creating %}Add medicine{% else %}Edit {{ medicine.brand_name }}{% endif %}</h1>
+<form method="post" class="form" novalidate>{% csrf_token %}
+  {% for field in form %}
+    <div class="field">
+      {% if field.field.widget.input_type == "checkbox" %}<label for="{{ field.id_for_label }}">{{ field }} {{ field.label }}</label>
+      {% else %}<label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{% endif %}
+      {% if field.help_text %}<div class="help">{{ field.help_text }}</div>{% endif %}
+      {% for e in field.errors %}<div class="error">{{ e }}</div>{% endfor %}
+    </div>
+  {% endfor %}
+  {% for e in form.non_field_errors %}<div class="error">{{ e }}</div>{% endfor %}
+  <div class="actions"><button class="btn" type="submit">Save</button><a class="btn secondary" href="{% url 'pharmacy:list' %}">Cancel</a></div>
+</form>
+{% endblock %}

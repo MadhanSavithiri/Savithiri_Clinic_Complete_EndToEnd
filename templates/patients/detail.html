@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% load accounts_tags %}
+{% block title %}{{ patient.patient_id }} - {{ clinic.name }}{% endblock %}
+{% block content %}
+<div class="head">
+  <div><h1>{{ patient.full_name }}</h1>
+  <p class="muted">{{ patient.patient_id }} &middot; {{ patient.age_display }} &middot; {{ patient.get_sex_display }}</p></div>
+  <a class="btn secondary" href="{% url 'patients:list' %}">Back to search</a>
+</div>
+
+{% if not patient.is_active %}
+  <div class="msg warning">This record was merged into <a href="{% url 'patients:detail' patient.merged_into.pk %}">{{ patient.merged_into.patient_id }}</a>. Use that record.</div>
+{% endif %}
+{% if todays_token %}
+  <div class="msg info">In today's queue: token <strong>{{ todays_token.token_number }}</strong> ({{ todays_token.get_status_display }}).</div>
+{% endif %}
+
+<div class="actions no-print">
+  {% if can_queue and not todays_token %}
+    <form method="post" action="{% url 'queueing:walk_in' patient.pk %}" class="inline-form">{% csrf_token %}<button class="btn" type="submit">Add to today's queue (walk-in)</button></form>
+  {% endif %}
+  {% if can_queue %}<a class="btn secondary" href="{% url 'queueing:appointment_create' patient.pk %}">Book appointment</a>{% endif %}
+  {% if request.user|can:"clinical.view_notes" %}<a class="btn secondary" href="{% url 'clinical:record' patient.pk %}">Clinical record</a>{% endif %}
+  {% if patient.is_active and request.user|can:"patients.edit" %}<a class="btn secondary" href="{% url 'patients:edit' patient.pk %}">Edit details</a>{% endif %}
+  {% if patient.is_active and request.user|can:"patients.merge" %}<a class="btn secondary" href="{% url 'patients:merge' patient.pk %}">Merge a duplicate into this record</a>{% endif %}
+</div>
+
+<h2>Details</h2>
+<dl class="facts">
+  <dt>Phone</dt><dd>{{ patient.phone|default:"No phone recorded" }}</dd>
+  <dt>Date of birth</dt><dd>{% if patient.date_of_birth %}{{ patient.date_of_birth|date:"d/m/Y" }}{% if patient.dob_estimated %} (estimated from age){% endif %}{% else %}-{% endif %}</dd>
+  <dt>Address</dt><dd>{{ patient.address|default:"-"|linebreaksbr }}</dd>
+  <dt>Emergency contact</dt><dd>{% if patient.emergency_contact_name or patient.emergency_contact_phone %}{{ patient.emergency_contact_name }} {{ patient.emergency_contact_relation }} {{ patient.emergency_contact_phone }}{% else %}-{% endif %}</dd>
+  <dt>Consent</dt><dd>{% if patient.consent_given %}Recorded {{ patient.consent_recorded_at|date:"d/m/Y h:i A" }} (given by {{ patient.consent_given_by }}){% else %}<span class="badge warn">Not recorded</span>{% endif %}</dd>
+  <dt>Registered</dt><dd>{{ patient.created_at|date:"d/m/Y h:i A" }}</dd>
+</dl>
+
+<h2>Other identifiers</h2>
+<ul>
+  {% for i in patient.identifiers.all %}<li>{{ i }}</li>{% empty %}<li class="muted">None recorded.</li>{% endfor %}
+</ul>
+{% if patient.is_active and request.user|can:"patients.edit" %}
+<form method="post" action="{% url 'patients:identifier_add' patient.pk %}" class="toolbar no-print">{% csrf_token %}
+  <div class="field"><label for="id_id_type">Type</label>{{ identifier_form.id_type }}</div>
+  <div class="field"><label for="id_value">Value</label>{{ identifier_form.value }}</div>
+  <button class="btn secondary" type="submit">Add identifier</button>
+</form>
+{% endif %}
+
+{% if upcoming %}
+<h2>Upcoming appointments</h2>
+<ul>{% for a in upcoming %}<li>{{ a.scheduled_date|date:"d/m/Y" }} {{ a.scheduled_time|date:"h:i A" }} - {{ a.number }}</li>{% endfor %}</ul>
+{% endif %}
+
+<h2>Recent visits (queue)</h2>
+<div class="table-wrap"><table>
+  <thead><tr><th>Date</th><th>Token</th><th>Status</th></tr></thead>
+  <tbody>{% for t in recent_tokens %}<tr><td>{{ t.token_date|date:"d/m/Y" }}</td><td>{{ t.token_number }}</td><td>{{ t.get_status_display }}</td></tr>
+  {% empty %}<tr><td colspan="3">No visits yet.</td></tr>{% endfor %}</tbody>
+</table></div>
+{% endblock %}

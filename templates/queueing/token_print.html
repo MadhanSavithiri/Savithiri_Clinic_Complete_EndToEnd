@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Token {{ token.token_number }}</title>
+<style>
+  @page { size: 80mm auto; margin: 4mm; }
+  body { font-family: "Segoe UI", Arial, sans-serif; width: 72mm; margin: 0 auto; text-align: center; color: #000; }
+  .clinic { font-weight: 700; font-size: 15pt; margin-top: 4mm; }
+  .sub { font-size: 9pt; }
+  .num { font-size: 54pt; font-weight: 700; line-height: 1.1; margin: 3mm 0 0; }
+  .label { font-size: 10pt; letter-spacing: .15em; text-transform: uppercase; }
+  .name { font-size: 13pt; font-weight: 600; margin-top: 2mm; }
+  .meta { font-size: 9pt; margin-top: 1mm; }
+  .btn { margin: 6mm 0; padding: 8px 18px; font-size: 14px; }
+  hr { border: 0; border-top: 1px dashed #000; margin: 3mm 0; }
+  @media print { .btn { display: none; } }
+</style></head>
+<body>
+  <div class="clinic">{{ clinic.name }}</div>
+  <div class="sub">{{ clinic.tagline }}</div>
+  {% if clinic.phone %}<div class="sub">Ph: {{ clinic.phone }}</div>{% endif %}
+  <hr>
+  <div class="label">Token</div>
+  <div class="num">{{ token.token_number }}</div>
+  <div class="name">{{ token.patient.full_name }}</div>
+  <div class="meta">{{ token.patient.patient_id }}</div>
+  <div class="meta">{{ token.registered_at|date:"d/m/Y h:i A" }}</div>
+  <hr>
+  <div class="sub">Please wait to be called.</div>
+  <button class="btn" onclick="window.print()">Print</button>
+</body></html>

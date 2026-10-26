@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}{{ target.username }} - {{ clinic.name }}{% endblock %}
+{% block content %}
+<div class="head">
+  <div><h1>{{ target.get_full_name|default:target.username }}</h1>
+  <p class="muted">{{ target.get_role_display }}</p></div>
+  <a class="btn secondary" href="{% url 'accounts:user_list' %}">Back to staff</a>
+</div>
+<dl class="facts">
+  <dt>Username</dt><dd>{{ target.username }}</dd>
+  <dt>Phone</dt><dd>{{ target.phone|default:"-" }}</dd>
+  <dt>Status</dt><dd>
+    {% if not target.is_active %}<span class="badge off">Deactivated</span>
+    {% elif target.is_locked %}<span class="badge bad">Locked until {{ target.locked_until }}</span>
+    {% else %}<span class="badge">Active</span>{% endif %}
+    {% if target.must_change_password %}<span class="badge warn">Must change password</span>{% endif %}
+  </dd>
+  <dt>Last sign-in</dt><dd>{{ target.last_login|default:"Never" }}</dd>
+</dl>
+<div class="actions">
+  <a class="btn" href="{% url 'accounts:user_edit' target.pk %}">Edit details</a>
+  {% if target.pk != request.user.pk %}
+    <a class="btn secondary" href="{% url 'accounts:user_reset_password' target.pk %}">Reset password</a>
+    <a class="btn secondary danger" href="{% url 'accounts:user_toggle_active' target.pk %}">{% if target.is_active %}Deactivate{% else %}Activate{% endif %}</a>
+  {% endif %}
+  {% if target.is_locked %}
+    <form method="post" action="{% url 'accounts:user_unlock' target.pk %}">{% csrf_token %}<button class="btn secondary" type="submit">Unlock account</button></form>
+  {% endif %}
+</div>
+<h2>Recent changes to this account</h2>
+<div class="table-wrap"><table>
+  <thead><tr><th>When</th><th>Done by</th><th>Action</th><th>Details</th></tr></thead>
+  <tbody>
+  {% for e in events %}
+    <tr><td>{{ e.timestamp }}</td><td>{{ e.username|default:"system" }}</td><td>{{ e.action }}</td><td>{{ e.summary }}{% if e.changes %} {{ e.changes }}{% endif %}</td></tr>
+  {% empty %}<tr><td colspan="4">Nothing recorded yet.</td></tr>{% endfor %}
+  </tbody>
+</table></div>
+{% endblock %}

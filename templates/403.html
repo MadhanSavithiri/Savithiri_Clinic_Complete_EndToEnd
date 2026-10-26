@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% block title %}Not allowed{% endblock %}
+{% block content %}
+<h1>You are not allowed to open this page</h1>
+<p>Your role ({{ request.user.get_role_display }}) does not include this area. This attempt was recorded. If you need access, ask the clinic administrator.</p>
+<a class="btn" href="{% url 'home' %}">Go to Home</a>
+{% endblock %}
+{% block public %}<div class="login-card"><h1>Not allowed</h1><p>Sign in with an account that has access.</p><a class="btn" href="{% url 'accounts:login' %}">Sign in</a></div>{% endblock %}

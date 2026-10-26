@@ -1,0 +1,1 @@
+<span class="badge {% if b.status == 'EXPIRED' or b.status == 'RECALLED' %}bad{% elif b.status == 'NEAR_EXPIRY' %}warn{% endif %}">{{ b.status_label }}</span>

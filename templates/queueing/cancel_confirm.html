@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+<h1>{{ title }}</h1>
+<p>A reason is required and is kept in the audit log.</p>
+<form method="post" class="form" novalidate>{% csrf_token %}
+  <div class="field"><label for="{{ form.reason.id_for_label }}">{{ form.reason.label }}</label>{{ form.reason }}
+    {% for e in form.reason.errors %}<div class="error">{{ e }}</div>{% endfor %}</div>
+  <div class="actions"><button class="btn danger" type="submit">Cancel it</button><a class="btn secondary" href="{{ back }}">Keep it</a></div>
+</form>
+{% endblock %}

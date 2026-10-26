@@ -1,0 +1,8 @@
+{% load accounts_tags %}
+<p class="no-print">
+  <a href="{% url 'pharmacy:stock_overview' %}">By medicine</a> &middot;
+  <a href="{% url 'pharmacy:batch_report' %}">By batch</a> &middot;
+  <a href="{% url 'pharmacy:expiry_report' %}">Expiry</a> &middot;
+  <a href="{% url 'pharmacy:ledger' %}">Movement history</a>
+  {% if request.user|can:"pharmacy.view_costs" %}&middot; <a href="{% url 'pharmacy:valuation' %}">Valuation</a>{% endif %}
+</p>

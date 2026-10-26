@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}{{ medicine.brand_name }} - {{ clinic.name }}{% endblock %}
+{% block content %}
+<div class="head"><div><h1>{{ medicine.brand_name }} {{ medicine.strength }}</h1>
+  <p class="muted">{{ medicine.generic_name }} &middot; {{ medicine.dosage_form }} &middot; {{ medicine.pack_size }} {{ medicine.unit }} per pack
+  {% if medicine.manufacturer %}&middot; {{ medicine.manufacturer }}{% endif %}</p>
+  {% if medicine.location_label %}<p><strong>{{ medicine.location_label }}</strong></p>{% endif %}</div>
+  <div class="actions" style="margin:0">{% if can_manage %}<a class="btn secondary" href="{% url 'pharmacy:edit' medicine.pk %}">Edit</a>{% endif %}<a class="btn secondary" href="{% url 'pharmacy:list' %}">Back</a></div></div>
+<h2>Batches</h2>
+<div class="table-wrap"><table>
+  <thead><tr><th>Batch</th><th>Expiry</th><th>Status</th><th>On hand</th><th>Sell / unit</th>{% if costs %}<th>Cost / unit</th>{% endif %}</tr></thead>
+  <tbody>{% for b in batches %}
+    <tr><td><a href="{% url 'pharmacy:batch_detail' b.pk %}">{{ b.batch_number }}</a></td><td>{{ b.expiry_date|date:"d/m/Y" }}</td><td>{% include "pharmacy/_badge.html" %}</td>
+    <td>{{ b.quantity_on_hand }}</td><td>{{ b.selling_price_per_unit }}</td>{% if costs %}<td>{{ b.purchase_price_per_unit }}</td>{% endif %}</tr>
+  {% empty %}<tr><td colspan="6">No stock has been received for this medicine.</td></tr>{% endfor %}</tbody>
+</table></div>
+<h2>Recent movements</h2>
+<div class="table-wrap"><table>
+  <thead><tr><th>When</th><th>Type</th><th>Batch</th><th>Change</th><th>Balance</th><th>Reason</th></tr></thead>
+  <tbody>{% for t in ledger %}<tr><td>{{ t.created_at|date:"d/m/Y h:i A" }}</td><td>{{ t.get_kind_display }}</td><td>{{ t.batch.batch_number }}</td><td>{{ t.quantity_change }}</td><td>{{ t.balance_after }}</td><td>{{ t.reason }}</td></tr>
+  {% empty %}<tr><td colspan="6">No movements yet.</td></tr>{% endfor %}</tbody>
+</table></div>
+{% endblock %}

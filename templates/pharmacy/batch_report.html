@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}Stock by batch - {{ clinic.name }}{% endblock %}
+{% block content %}
+<div class="head"><h1>Stock by batch</h1><a class="btn secondary no-print" href="?fmt=csv{% if status %}&status={{ status }}{% endif %}{% if show_all %}&all=1{% endif %}">Download CSV</a></div>
+{% include "pharmacy/_stock_nav.html" %}
+<p class="no-print">Show: <a href="?">All in stock</a> &middot; <a href="?status=OK">OK</a> &middot; <a href="?status=NEAR_EXPIRY">Near expiry</a> &middot; <a href="?status=EXPIRED">Expired</a> &middot; <a href="?status=RECALLED">Recalled</a> &middot; <a href="?all=1">Include empty batches</a></p>
+<div class="table-wrap"><table>
+  <thead><tr><th>Medicine</th><th>Batch</th><th>Expiry</th><th>Status</th><th>On hand</th><th>Sell / unit</th>{% if costs %}<th>Cost / unit</th>{% endif %}<th>Supplier</th></tr></thead>
+  <tbody>{% for b in rows %}
+    <tr><td>{{ b.medicine.brand_name }} {{ b.medicine.strength }}</td><td><a href="{% url 'pharmacy:batch_detail' b.pk %}">{{ b.batch_number }}</a></td>
+    <td>{{ b.expiry_date|date:"d/m/Y" }}</td><td>{% include "pharmacy/_badge.html" %}</td><td>{{ b.quantity_on_hand }}</td>
+    <td>{{ b.selling_price_per_unit }}</td>{% if costs %}<td>{{ b.purchase_price_per_unit }}</td>{% endif %}<td>{{ b.supplier.name|default:"-" }}</td></tr>
+  {% empty %}<tr><td colspan="8">No batches match.</td></tr>{% endfor %}</tbody>
+</table></div>
+{% endblock %}

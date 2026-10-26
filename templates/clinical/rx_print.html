@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Prescription {{ rx.number }}</title>
+<style>
+  @page { size: A4; margin: 14mm; }
+  body { font-family: "Segoe UI", Arial, sans-serif; color: #000; font-size: 11pt; margin: 0; }
+  .sheet { max-width: 190mm; margin: 0 auto; padding: 8mm 0; }
+  .head { display: flex; justify-content: space-between; gap: 10mm; border-bottom: 2px solid #000; padding-bottom: 4mm; }
+  .clinic { font-size: 18pt; font-weight: 700; } .sub { font-size: 10pt; }
+  .doctor { text-align: right; font-size: 10pt; } .doctor b { font-size: 12pt; }
+  .meta { display: flex; justify-content: space-between; margin: 4mm 0; font-size: 10.5pt; gap: 6mm; }
+  .rx { font-size: 26pt; font-weight: 700; margin: 2mm 0; }
+  table { width: 100%; border-collapse: collapse; font-size: 10.5pt; }
+  th, td { border-bottom: 1px solid #999; padding: 2mm 1.5mm; text-align: left; vertical-align: top; }
+  th { border-bottom: 2px solid #000; }
+  .box { margin-top: 5mm; } .label { font-weight: 700; }
+  .sign { margin-top: 22mm; text-align: right; } .sign span { border-top: 1px solid #000; padding-top: 1mm; display: inline-block; min-width: 60mm; text-align: center; }
+  .banner { border: 2px solid #000; text-align: center; font-weight: 700; padding: 2mm; margin-bottom: 4mm; }
+  .foot { margin-top: 8mm; font-size: 8.5pt; color: #333; border-top: 1px solid #999; padding-top: 2mm; }
+  .toolbar { text-align: center; margin-bottom: 6mm; } .toolbar button { font-size: 14px; padding: 8px 18px; }
+  @media print { .toolbar { display: none; } }
+</style></head>
+<body><div class="sheet">
+  <div class="toolbar"><button onclick="window.print()">Print</button></div>
+  {% if rx.status == "SUPERSEDED" %}<div class="banner">SUPERSEDED: replaced by a corrected prescription. Do not dispense.</div>{% endif %}
+  {% if rx.status == "CANCELLED" %}<div class="banner">CANCELLED. Do not dispense.</div>{% endif %}
+  <div class="head">
+    <div><div class="clinic">{{ clinic.name }}</div><div class="sub">{{ clinic.tagline }}</div>
+      <div class="sub">{{ clinic.address }}</div>
+      {% if clinic.phone %}<div class="sub">Phone: {{ clinic.phone }}</div>{% endif %}
+      {% if clinic.consultation_hours %}<div class="sub">Hours: {{ clinic.consultation_hours }}</div>{% endif %}</div>
+    <div class="doctor"><b>{{ rx.doctor_name }}</b><br>{{ rx.doctor_qualifications }}
+      {% if rx.doctor_registration_number %}<br>Reg. No.: {{ rx.doctor_registration_number }}{% endif %}
+      {% if rx.doctor_registration_council %}<br>{{ rx.doctor_registration_council }}{% endif %}</div>
+  </div>
+  <div class="meta">
+    <div><span class="label">Patient:</span> {{ patient.full_name }}<br>
+      <span class="label">ID:</span> {{ patient.patient_id }} &nbsp; <span class="label">Age/Sex:</span> {{ patient.age_display }} / {{ patient.get_sex_display }}</div>
+    <div style="text-align:right"><span class="label">Prescription No.:</span> {{ rx.number }}{% if rx.version > 1 %} (v{{ rx.version }}){% endif %}<br>
+      <span class="label">Date:</span> {{ rx.finalized_at|date:"d/m/Y" }}</div>
+  </div>
+  <div class="rx">&#8478;</div>
+  <table>
+    <thead><tr><th>#</th><th>Medicine</th><th>Dose</th><th>Route</th><th>Frequency</th><th>Duration</th><th>Qty</th></tr></thead>
+    <tbody>{% for i in rx.items.all %}
+      <tr><td>{{ i.line_no }}</td><td><b>{{ i.medicine_name }}</b> {{ i.strength }} {{ i.dosage_form }}{% if i.instructions %}<br><i>{{ i.instructions }}</i>{% endif %}</td>
+      <td>{{ i.dose }}</td><td>{{ i.route }}</td><td>{{ i.frequency }}{% if i.meal_text %}<br>{{ i.meal_text }}{% endif %}</td><td>{{ i.duration }}</td><td>{{ i.quantity }}</td></tr>{% endfor %}</tbody>
+  </table>
+  {% if enc.advice %}<div class="box"><span class="label">Advice:</span><br>{{ enc.advice|linebreaksbr }}</div>{% endif %}
+  {% if enc.follow_up_date %}<div class="box"><span class="label">Follow-up:</span> {{ enc.follow_up_date|date:"d/m/Y" }} {{ enc.follow_up_notes }}</div>{% endif %}
+  <div class="sign"><span>Doctor's signature</span></div>
+  <div class="foot">{{ clinic.name }}{% if clinic.pharmacy_licence_number %} &middot; Pharmacy licence: {{ clinic.pharmacy_licence_number }}{% endif %}. Printed {% now "d/m/Y h:i A" %}.</div>
+</div></body></html>

@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% load accounts_tags %}
+{% block title %}Purchases - {{ clinic.name }}{% endblock %}
+{% block content %}
+<div class="head"><div><h1>Purchases</h1><p class="muted">Enter a supplier invoice, add its items, then receive it into stock.</p></div>
+  <div class="actions" style="margin:0"><a class="btn" href="{% url 'pharmacy:purchase_create' %}">New purchase</a>
+  <a class="btn secondary" href="{% url 'pharmacy:supplier_list' %}">Suppliers</a>
+  {% if costs %}<a class="btn secondary" href="{% url 'pharmacy:purchase_report' %}">Purchase report</a>{% endif %}</div></div>
+<div class="table-wrap"><table>
+  <thead><tr><th>Entry no.</th><th>Supplier</th><th>Supplier invoice</th><th>Date</th><th>Status</th><th>Total</th></tr></thead>
+  <tbody>{% for p in purchases %}<tr><td><a href="{% url 'pharmacy:purchase_detail' p.pk %}">{{ p.number|default:"Draft" }}</a></td><td>{{ p.supplier.name }}</td><td>{{ p.supplier_invoice_number }}</td>
+    <td>{{ p.invoice_date|date:"d/m/Y" }}</td><td><span class="badge {% if p.status == 'DRAFT' %}warn{% endif %}">{{ p.get_status_display }}</span></td><td>&#8377; {{ p.total_payable }}</td></tr>
+  {% empty %}<tr><td colspan="6">No purchases yet.</td></tr>{% endfor %}</tbody>
+</table></div>
+{% endblock %}

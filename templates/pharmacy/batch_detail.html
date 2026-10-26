@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Batch {{ batch.batch_number }} - {{ clinic.name }}{% endblock %}
+{% block content %}
+<div class="head"><div><h1>{{ batch.medicine.brand_name }} {{ batch.medicine.strength }}</h1>
+  <p class="muted">Batch {{ batch.batch_number }} &middot; expires {{ batch.expiry_date|date:"d/m/Y" }} &middot; {% include "pharmacy/_badge.html" with b=batch %}</p></div>
+  <a class="btn secondary" href="{% url 'pharmacy:medicine_detail' batch.medicine_id %}">Back to medicine</a></div>
+{% if batch.is_recalled %}<div class="alert-banner danger"><strong>Recalled</strong> {{ batch.recalled_at|date:"d/m/Y" }}: {{ batch.recall_reason }}. This batch cannot be dispensed.</div>{% endif %}
+<dl class="facts">
+  <dt>On hand</dt><dd><strong>{{ batch.quantity_on_hand }}</strong> {{ batch.medicine.unit }} (received {{ batch.quantity_received }})</dd>
+  <dt>Selling price / unit</dt><dd>&#8377; {{ batch.selling_price_per_unit }}</dd>
+  {% if costs %}<dt>Cost / unit</dt><dd>&#8377; {{ batch.purchase_price_per_unit }}</dd>{% endif %}
+  <dt>Supplier</dt><dd>{{ batch.supplier.name|default:"-" }}</dd>
+  <dt>Received</dt><dd>{{ batch.received_date|date:"d/m/Y" }}</dd>
+</dl>
+
+{% if can_adjust or can_return %}
+<div class="panel no-print"><h2>Change stock</h2>
+  <p class="muted">Each change needs a reason and is recorded permanently in the movement history.</p>
+  <div class="fields-grid" style="align-items:start">
+  {% if can_adjust %}
+    <form method="post" action="{% url 'pharmacy:batch_adjust' batch.pk %}">{% csrf_token %}<h3>Stock-take correction</h3>{% include "clinical/_fields.html" with form=adjust_form %}<button class="btn secondary" type="submit">Apply correction</button></form>
+    <form method="post" action="{% url 'pharmacy:batch_wastage' batch.pk %}">{% csrf_token %}<h3>Write off (expired, damaged)</h3>{% include "clinical/_fields.html" with form=wastage_form %}<button class="btn secondary danger" type="submit">Record wastage</button></form>
+  {% endif %}
+  {% if can_return %}
+    <form method="post" action="{% url 'pharmacy:batch_return' batch.pk %}">{% csrf_token %}<h3>Return to supplier</h3>{% include "clinical/_fields.html" with form=return_form %}<button class="btn secondary" type="submit">Record return</button></form>
+  {% endif %}
+  {% if can_adjust %}
+    {% if batch.is_recalled %}
+      <form method="post" action="{% url 'pharmacy:batch_unrecall' batch.pk %}">{% csrf_token %}<h3>Recall</h3><button class="btn secondary" type="submit">Clear recall</button></form>
+    {% else %}
+      <form method="post" action="{% url 'pharmacy:batch_recall' batch.pk %}">{% csrf_token %}<h3>Mark as recalled</h3>{% include "clinical/_fields.html" with form=recall_form %}<button class="btn secondary danger" type="submit">Mark recalled</button></form>
+    {% endif %}
+  {% endif %}
+  </div>
+</div>
+{% endif %}
+
+<h2>Movement history</h2>
+<div class="table-wrap"><table>
+  <thead><tr><th>When</th><th>Type</th><th>Change</th><th>Balance</th><th>Reason</th><th>By</th></tr></thead>
+  <tbody>{% for t in ledger %}<tr><td>{{ t.created_at|date:"d/m/Y h:i A" }}</td><td>{{ t.get_kind_display }}</td><td>{{ t.quantity_change }}</td><td>{{ t.balance_after }}</td><td>{{ t.reason }}</td><td>{{ t.created_by.username }}</td></tr>
+  {% empty %}<tr><td colspan="6">No movements.</td></tr>{% endfor %}</tbody>
+</table></div>
+{% endblock %}

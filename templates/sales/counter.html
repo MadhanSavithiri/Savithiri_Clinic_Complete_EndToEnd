@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Counter billing - {{ clinic.name }}{% endblock %}
+{% block content %}
+<div class="head"><div><h1>Counter billing</h1>
+  <p class="muted">Independent counter sale: not linked to any clinic patient, consultation or clinic bill.</p></div></div>
+
+{% if not shift %}
+  <div class="panel" style="max-width:34rem"><h2>Open your shift</h2>
+    <p>Count the cash in the drawer, then start billing.</p>
+    <form method="post" action="{% url 'sales:shift_open' %}" novalidate>{% csrf_token %}
+      {% include "sales/_field.html" with field=open_form.opening_cash %}
+      <button class="btn" type="submit">Open shift</button></form></div>
+{% else %}
+<div class="shiftbar" aria-label="Current shift">
+  <span>Shift open since <strong>{{ shift.opened_at|date:"h:i A" }}</strong></span>
+  <span>Bills <strong>{{ summary.bills }}</strong></span>
+  <span>Sales <strong>&#8377; {{ summary.sales_total }}</strong></span>
+  <span>Collected <strong>&#8377; {{ summary.collected }}</strong></span>
+  <a href="{% url 'sales:shift' %}">Shift details / close</a>
+</div>
+
+<div class="counter-grid">
+<section>
+  <form method="get" class="toolbar" role="search">
+    <div class="field" style="min-width:22rem;flex:1"><label for="q">Find an item</label>
+      <input id="q" type="search" name="q" value="{{ q }}" autofocus autocomplete="off"
+             placeholder="Name, generic name, strength, item code, or rack / shelf / box"
+             data-live-search="{% url 'sales:search' %}" data-live-target="#results"></div>
+    <button class="btn secondary" type="submit">Search</button>
+  </form>
+  <div id="results">{% include "sales/_results.html" %}</div>
+</section>
+
+<section class="panel">
+  <h2>Open bill</h2>
+  {% if not cart.rows %}<p class="muted">Nothing added yet. Search for an item and press Add.</p>
+  {% else %}
+  <div class="table-wrap"><table>
+    <thead><tr><th>Item</th><th>Qty</th><th>Amount</th><th></th></tr></thead>
+    <tbody>
+    {% for row in cart.rows %}
+      <tr>
+        <td><strong>{{ row.medicine.brand_name }}</strong> {{ row.medicine.strength }}
+          <div class="location">{{ row.location|default:"Location not set" }}</div>
+          {% for p in row.parts %}<div class="muted">Batch {{ p.batch_number }} &middot; exp {{ p.expiry_date|date:"m/Y" }} &middot; {{ p.quantity }} &times; &#8377;{{ p.unit_price|floatformat:"-4" }}</div>{% endfor %}
+          {% if row.short %}<div class="error">Not enough stock: {{ row.short }} short. Reduce the quantity.</div>{% endif %}
+          {% if row.needs_approval %}<span class="badge bad">Prescription only</span>{% endif %}</td>
+        <td><form method="post" action="{% url 'sales:cart_quantity' row.line.pk %}" class="mini-form">{% csrf_token %}
+          <input type="number" name="quantity" value="{{ row.line.quantity }}" min="0" aria-label="Quantity" style="width:5rem">
+          <button class="btn small secondary" type="submit">Update</button></form></td>
+        <td>&#8377; {{ row.total }}</td>
+        <td><form method="post" action="{% url 'sales:cart_remove' row.line.pk %}">{% csrf_token %}<button class="btn small secondary danger" type="submit">Remove</button></form></td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+
+  <form method="post" action="{% url 'sales:checkout' %}" id="checkout" data-lines="{{ line_paise }}" data-limit="{{ discount_limit }}" novalidate>
+    {% csrf_token %}{{ checkout.sale_id }}{{ checkout.expected_subtotal }}
+    {% for e in checkout.non_field_errors %}<div class="error">{{ e }}</div>{% endfor %}
+    <div class="totals">
+      <div>Items total: &#8377; <strong id="subtotal">{{ cart.subtotal }}</strong></div>
+      <div>Discount: &#8377; <strong id="discount-amt">0.00</strong></div>
+      <div class="big">Total: &#8377; <span id="total-amt">{{ cart.subtotal }}</span></div>
+    </div>
+    <div class="fields-grid">
+      {% include "sales/_field.html" with field=checkout.discount_percent %}
+      {% include "sales/_field.html" with field=checkout.discount_reason %}
+    </div>
+    <p class="muted">Your discount limit is {{ discount_limit }}%. A reason is required.</p>
+
+    {% if cart.has_restricted %}
+    <div class="alert-banner danger"><strong>Prescription-only medicine on this bill.</strong>
+      Record the prescription and get the pharmacist's approval below.</div>
+    <div class="fields-grid">
+      {% include "sales/_field.html" with field=checkout.rx_prescriber_name %}
+      {% include "sales/_field.html" with field=checkout.rx_prescriber_reg_no %}
+      {% include "sales/_field.html" with field=checkout.rx_patient_name %}
+      {% include "sales/_field.html" with field=checkout.approver_username %}
+      {% include "sales/_field.html" with field=checkout.approver_password %}
+    </div>
+    {% endif %}
+
+    <h3>Payment</h3>
+    <div class="fields-grid">
+      {% include "sales/_field.html" with field=checkout.pay1_method %}
+      {% include "sales/_field.html" with field=checkout.pay1_amount %}
+      {% include "sales/_field.html" with field=checkout.pay1_reference %}
+    </div>
+    {% include "sales/_field.html" with field=checkout.pay1_confirmed %}
+    <details {% if checkout.pay2_amount.value %}open{% endif %}><summary>Split the bill into two payments</summary>
+      <div class="fields-grid">
+        {% include "sales/_field.html" with field=checkout.pay2_method %}
+        {% include "sales/_field.html" with field=checkout.pay2_amount %}
+        {% include "sales/_field.html" with field=checkout.pay2_reference %}
+      </div>
+      {% include "sales/_field.html" with field=checkout.pay2_confirmed %}
+    </details>
+    <div class="fields-grid">
+      <div class="field"><label for="cash-given">Cash given by customer (only to work out the change; not saved)</label>
+        <input id="cash-given" type="number" step="0.01" min="0"></div>
+      <div class="field"><label>Change to give back</label><div class="totals"><div class="big">&#8377; <span id="change-amt">0.00</span></div></div></div>
+    </div>
+    <div class="fields-grid">
+      {% include "sales/_field.html" with field=checkout.customer_name %}
+      {% include "sales/_field.html" with field=checkout.customer_phone %}
+    </div>
+    <div class="actions">
+      <button class="btn" type="submit" {% if cart.has_problem %}disabled{% endif %}>Complete sale and print receipt</button>
+    </div>
+  </form>
+  <form method="post" action="{% url 'sales:cart_discard' %}" style="margin-top:.6rem">{% csrf_token %}<button class="btn secondary danger" type="submit">Discard this bill</button></form>
+  {% endif %}
+</section>
+</div>
+{% endif %}
+<script src="{% static 'js/counter.js' %}" defer></script>
+{% endblock %}

@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Purchase report - {{ clinic.name }}{% endblock %}
+{% block content %}
+<div class="head"><h1>Purchase report</h1><a class="btn secondary no-print" href="?fmt=csv&from={{ f.from }}&to={{ f.to }}">Download CSV</a></div>
+<form method="get" class="toolbar no-print">
+  <div class="field"><label for="from">From</label><input id="from" type="date" name="from" value="{{ f.from }}"></div>
+  <div class="field"><label for="to">To</label><input id="to" type="date" name="to" value="{{ f.to }}"></div>
+  <button class="btn secondary" type="submit">Show</button></form>
+<p><strong>Total purchased: &#8377; {{ grand }}</strong> <span class="muted">(received purchases only, by invoice date)</span></p>
+<h2>By supplier</h2>
+<div class="table-wrap"><table><thead><tr><th>Supplier</th><th>Discount</th><th>Tax</th><th>Total</th></tr></thead>
+  <tbody>{% for s in by_supplier %}<tr><td>{{ s.supplier__name }}</td><td>{{ s.discount }}</td><td>{{ s.tax }}</td><td>{{ s.total }}</td></tr>{% empty %}<tr><td colspan="4">No purchases in this period.</td></tr>{% endfor %}</tbody></table></div>
+<h2>Invoices</h2>
+<div class="table-wrap"><table><thead><tr><th>Entry no.</th><th>Date</th><th>Supplier</th><th>Supplier invoice</th><th>Total</th></tr></thead>
+  <tbody>{% for i in invoices %}<tr><td><a href="{% url 'pharmacy:purchase_detail' i.pk %}">{{ i.number }}</a></td><td>{{ i.invoice_date|date:"d/m/Y" }}</td><td>{{ i.supplier.name }}</td><td>{{ i.supplier_invoice_number }}</td><td>{{ i.grand_total }}</td></tr>{% empty %}<tr><td colspan="5">None.</td></tr>{% endfor %}</tbody></table></div>
+{% endblock %}

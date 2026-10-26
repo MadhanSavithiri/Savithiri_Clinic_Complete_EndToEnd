@@ -1,0 +1,28 @@
+{% if results %}
+<div class="table-wrap"><table>
+  <thead><tr><th>Item and location</th><th>In stock</th><th>Price</th><th>Batch / expiry</th><th></th></tr></thead>
+  <tbody>
+  {% for r in results %}
+    <tr {% if not r.usable or r.blocked %}class="row-muted"{% endif %}>
+      <td><strong>{{ r.name }}</strong> {{ r.strength }} <span class="muted">{{ r.form }}</span>
+        {% if r.generic %}<br><span class="muted">{{ r.generic }}</span>{% endif %}
+        {% if r.item_code %} <span class="badge off">{{ r.item_code }}</span>{% endif %}
+        {% if r.needs_approval %} <span class="badge bad">Prescription only</span>{% endif %}
+        {% if r.blocked %} <span class="badge bad">Not sold at the counter</span>{% endif %}
+        <div class="location">{{ r.location|default:"Location not set" }}</div>
+        {% if r.storage_notes %}<div class="muted">{{ r.storage_notes }}</div>{% endif %}</td>
+      <td><strong>{{ r.usable }}</strong> {{ r.unit }}</td>
+      <td>{% if r.price is not None %}&#8377; {{ r.price|floatformat:"-4" }}{% if r.price_varies %} <span class="muted">(varies by batch)</span>{% endif %}<span class="muted"> / {{ r.unit }}</span>{% else %}-{% endif %}</td>
+      <td>{% if r.batch_number %}{{ r.batch_number }}<br>{{ r.expiry|date:"d/m/Y" }}{% if r.near_expiry %} <span class="badge warn">Near expiry</span>{% endif %}{% else %}-{% endif %}</td>
+      <td>{% if r.usable and not r.blocked %}
+        <form method="post" action="{% url 'sales:cart_add' %}" class="mini-form">{% csrf_token %}
+          <input type="hidden" name="medicine_id" value="{{ r.id }}">
+          <input type="number" name="quantity" value="1" min="1" max="{{ r.usable }}" aria-label="Quantity of {{ r.name }}" style="width:5rem">
+          <button class="btn small" type="submit">Add</button></form>
+        {% else %}<span class="muted">Not available</span>{% endif %}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table></div>
+{% elif q %}<p class="muted">No item found for "{{ q }}". Try the generic name, a shorter word, or the rack code.</p>
+{% else %}<p class="muted">Type a name, generic name, strength, item code or rack / shelf / box to find an item.</p>{% endif %}
